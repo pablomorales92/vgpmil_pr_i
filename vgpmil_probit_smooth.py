@@ -36,18 +36,19 @@ def compute_norm_constant(Bags, mu_M, var):
     return norm_constant
 
 class vgpmil_probit_smooth(object):
-    def __init__(self, kernel, num_inducing=50, max_iter=10, normalize=True, verbose=False, mu_m_0=None, sigma_m_0_inv=None, batch_size=None, prior_weight=1, save_folder=None):
+    def __init__(self, kernel, num_inducing=50, max_iter=10, normalize=True, verbose=False, mu_m_0=None, sigma_m_0_inv=None, prior_weight=1, save_folder=None):
         """
-        :param kernel: Specify the kernel to be used
-        :param num_inducing: nr of inducing points
+        :param kernel: Specify the kernel to be used (RBF available in file kernel.py)
+        :param num_inducing: number of inducing points
         :param max_iter: maximum number of iterations
         :param normalize: normalizes the data before training
         :param verbose: regulate verbosity
         :param mu_m_0: the mu of the smoothness distribution p(m). By default it is 0. Shape: (N,)
-        :param sigma_m_0_inv: the (inv) sigma of the smoothness distribution p(m). By default it is close to zero (i.e. uniform prior). Shape (N,N).
+        :param sigma_m_0_inv: the (inv) sigma of the smoothness distribution p(m). By default it is close to zero (i.e. uniform prior). This is the C_b matrix in eq.(8), exemplified in eq.(10). Shape (N,N).
                         It will be zero if the instances do not come from the same bag or if, coming from the same bag, there is no smoothness imposed.
                         It can be obtained by iterating over the samples (patches) and looking at the adjacent patches (not block-diagonal per se).
-        :param prior_weight: the weight to be applied to the smoothness distribution p(m). A small/large value (i.e. 1e-4/1e4) means that the prior has a small/big influence.
+        :param prior_weight: the weight to be applied to the smoothness distribution p(m). A small/large value (i.e. 1e-4/1e4) means that the prior has a small/big influence. This is \lambda in the arXiv paper.
+        :param save_folder: where to save things
         """
         self.kernel = kernel
         self.num_ind = num_inducing
@@ -56,7 +57,6 @@ class vgpmil_probit_smooth(object):
         self.verbose = verbose
         self.mu_m_0 = mu_m_0
         self.sigma_m_0_inv = sigma_m_0_inv
-        self.batch_size = batch_size
         self.prior_weight = prior_weight
         self.save_folder = save_folder
 
