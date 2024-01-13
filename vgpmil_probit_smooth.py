@@ -44,7 +44,7 @@ class vgpmil_probit_smooth(object):
         :param normalize: normalizes the data before training
         :param verbose: regulate verbosity
         :param mu_m_0: the mu of the smoothness distribution p(m). By default it is 0. Shape: (N,)
-        :param sigma_m_0_inv: the (inv) sigma of the smoothness distribution p(m). By default it is close to zero (i.e. uniform prior). This is the C_b matrix in eq.(8), exemplified in eq.(10). Shape (N,N).
+        :param sigma_m_0_inv: the (inv) sigma of the smoothness distribution p(m). By default it is zero (i.e. uniform prior). This is the C_b matrix in eq.(8), exemplified in eq.(10). Shape (N,N).
                         The position (i,j) will be zero if the instances do not come from the same bag or if, coming from the same bag, there is no smoothness imposed.
                         The matrix can be obtained by iterating over the samples (patches) and looking at the adjacent patches.
         :param prior_weight: the weight to be applied to the smoothness distribution p(m). A small/large value (i.e. 1e-4/1e4) means that the prior has a small/big influence. This is \lambda in the arXiv paper.
@@ -182,7 +182,10 @@ class vgpmil_probit_smooth(object):
         """
         Predict instances
         :param Xtest: mxd matrix of n instances with d features
-        :return: Instance Predictions
+        :param bag_names_per_instance: n-dim vector with the bag index of each instance
+        :param sigma_m_0_inv: the (inv) sigma of the smoothness distribution p(m) for the test data. By default it zero (i.e. uniform prior). This is the C_b matrix in eq.(8), exemplified in eq.(10). Shape (N,N).
+        :param mu_m_0: the mu of the smoothness distribution p(m) for the test data. By default it is 0. Shape: (N,)
+        :return: Instance and bag predictions
         """
         if mu_m_0 is None:
             mu_m_0 = np.zeros(Xtest.shape[0])
@@ -198,13 +201,6 @@ class vgpmil_probit_smooth(object):
         mu_m_ast_all = np.zeros(bag_names_per_instance.shape)
         bag_probabilities = []
 
-        # for bag_name in bag_names:
-        #     bag_mask = (bag_names_per_instance == bag_name)
-        #     sigma_m_0_inv_local = self.prior_weight*sigma_m_0_inv[np.ix_(bag_mask,bag_mask)].astype("float")
-        #     lowest_ev = np.linalg.eigvals(sigma_m_0_inv_local).min()
-        #     if lowest_ev < -1e-10:
-        #         print(bag_name, lowest_ev)
-
         for i, bag_name in enumerate(bag_names):
             
             if i%20==0:
@@ -217,8 +213,6 @@ class vgpmil_probit_smooth(object):
             KzziKzx = np.dot(self.Kzzinv, Kzx)
             sigma_f_ast = self.kernel.compute(Xtest[bag_mask,:], Xtest[bag_mask,:]) - \
                              KzziKzx.T @ (self.Kzz-self.S) @ KzziKzx  # Sigma_f^* = K_{XX} - K_{XZ}*K_{ZZ}^{-1}*(K_{ZZ}-S)*K_{ZZ}^{-1}*K_{ZX}
-            # sigma_f_ast = self.kernel.compute_diag(Xtest[bag_mask,:]) - np.diag(np.einsum("ij,ij->j", Kzx, KzziKzx)) + \
-            #                  KzziKzx.T @ (self.S @ KzziKzx)  # Sigma_f^* = diag(K_{XX} - K_{XZ}*K_{ZZ}^{-1}*K_{ZX}) + K_{XZ}*K_{ZZ}^{-1}*S*K_{ZZ}^{-1}*K_{ZX}
             mu_f_ast = np.dot(KzziKzx.T, self.m)                      # mu_f^* = K_{XZ} * K_{ZZ}^{-1} * self.m
 
             # Computations for m
@@ -227,21 +221,14 @@ class vgpmil_probit_smooth(object):
             else:
                 sigma_m_0_inv_local = self.prior_weight*sigma_m_0_inv[bag_name].astype("float")
             mu_m_0_local = mu_m_0[bag_mask]
-            try:
-                sigma_tilde = np.linalg.inv(sigma_m_0_inv_local + np.eye(sigma_m_0_inv_local.shape[0]) )
-            except:
-                import pdb; pdb.set_trace()
+            sigma_tilde = np.linalg.inv(sigma_m_0_inv_local + np.eye(sigma_m_0_inv_local.shape[0]) )
             mu_tilde = sigma_tilde @ (sigma_m_0_inv_local @ mu_m_0_local)
             mu_m_ast = sigma_tilde @ mu_f_ast + mu_tilde
             sigma_m_ast = sigma_tilde + sigma_tilde @ sigma_f_ast @ sigma_tilde.T
 
             # Instance level and bag level predictions
             instance_probabilities[bag_mask] = probit_func(mu_m_ast/np.sqrt(np.diag(sigma_m_ast)))
-            try:
-                # bag_probabilities.append(1-multivariate_normal.cdf(x=np.zeros_like(mu_m_ast), mean=mu_m_ast, cov=sigma_m_ast+1e-8*np.eye(sigma_m_ast.shape[0])))
-                bag_probabilities.append(1-get_prob_all_less_zero(mu_m_ast, sigma_m_ast+1e-8*np.eye(sigma_m_ast.shape[0])))
-            except:
-                import pdb; pdb.set_trace()
+            bag_probabilities.append(1-get_prob_all_less_zero(mu_m_ast, sigma_m_ast+1e-8*np.eye(sigma_m_ast.shape[0])))
             mu_f_ast_all[bag_mask] = mu_f_ast
             mu_m_ast_all[bag_mask] = mu_m_ast
         
