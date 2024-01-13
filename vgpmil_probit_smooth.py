@@ -136,7 +136,7 @@ class vgpmil_probit_smooth(object):
         # The parameters for q(m)
         self.E_m = np.random.randn(Xtrain.shape[0])
 
-    def train(self, Xtrain, InstBagLabel, Bags, Z=None, init=True, num_samples=5000):
+    def train(self, Xtrain, InstBagLabel, Bags, Z=None, init=True):
         """
         Train the model
         :param Xtrain: nxd array of n instances with d features each
@@ -144,7 +144,6 @@ class vgpmil_probit_smooth(object):
         :param Bags: n-dim vector with the bag index of each instance
         :param Z: (opt) set of precalculated inducing points to be used
         :param init: (opt) whether to initialize before training
-        :param num_samples: (opt) number of samples to calculate the mean of the truncated Gaussian 
         """
         if init:
             start = time()
@@ -156,8 +155,6 @@ class vgpmil_probit_smooth(object):
         mu_M, var = np.zeros_like(self.E_m), np.zeros_like(self.E_m)
         for it in range(self.max_iter):
 
-            # self.print_m()
-
             start = time()
             if self.verbose:
                 print("Iter %i/%i" % (it + 1, self.max_iter))
@@ -165,7 +162,7 @@ class vgpmil_probit_smooth(object):
             ### Updating q(u)
             self.m = self.S @ (self.KzziKzx @ (self.E_m - self.mu_tilde_concat))
 
-            ### Updating q(m) (We may not need to split the block diagonal matrix in submatrices)
+            ### Updating q(m) 
             for name in self.bag_names_unique:
                 mu_M[self.bag_idxs[name]] = self.sigma_tilde[name] @ \
                                             (self.KzziKzx[:,self.bag_idxs[name]].T @ self.m)
@@ -180,7 +177,6 @@ class vgpmil_probit_smooth(object):
             stop = time()
             if self.verbose:
                 print("Minutes needed: ", (stop - start) / 60.)
-        # self.print_m()
 
     def predict(self, Xtest, bag_names_per_instance, sigma_m_0_inv=None, mu_m_0=None):
         """
