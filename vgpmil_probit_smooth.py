@@ -45,8 +45,8 @@ class vgpmil_probit_smooth(object):
         :param verbose: regulate verbosity
         :param mu_m_0: the mu of the smoothness distribution p(m). By default it is 0. Shape: (N,)
         :param sigma_m_0_inv: the (inv) sigma of the smoothness distribution p(m). By default it is close to zero (i.e. uniform prior). This is the C_b matrix in eq.(8), exemplified in eq.(10). Shape (N,N).
-                        It will be zero if the instances do not come from the same bag or if, coming from the same bag, there is no smoothness imposed.
-                        It can be obtained by iterating over the samples (patches) and looking at the adjacent patches (not block-diagonal per se).
+                        The position (i,j) will be zero if the instances do not come from the same bag or if, coming from the same bag, there is no smoothness imposed.
+                        The matrix can be obtained by iterating over the samples (patches) and looking at the adjacent patches.
         :param prior_weight: the weight to be applied to the smoothness distribution p(m). A small/large value (i.e. 1e-4/1e4) means that the prior has a small/big influence. This is \lambda in the arXiv paper.
         :param save_folder: where to save things
         """
@@ -64,9 +64,9 @@ class vgpmil_probit_smooth(object):
         """
         Initialize the model
         :param Xtrain: nxd array of n instances with d features each
-        :param InstBagLabel:  n-dim vector with the bag label of each instance
+        :param InstBagLabel: n-dim vector with the bag label of each instance
         :param Bags: n-dim vector with the bag index of each instance
-        :param Z: (opt) set of precalculated inducing points to be used
+        :param Z: (opt) set of precalculated inducing point locations to be used
         """
 
         # Initialize mu_m_0 and sigma_m_0_inv
