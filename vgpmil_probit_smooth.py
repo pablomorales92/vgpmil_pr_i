@@ -13,8 +13,8 @@ def probit_func(x):
 
 def get_prob_all_less_zero(mean, var, num_samples=5000):
     """
-    Computes the integral in the second equation in second column of page 5 of AISTATS.
-    That is, for a multivariate Gaussian with 'mean' and 'var', it computes the probability that all the components are less than zero, using MC estimation.
+    For a multivariate Gaussian with 'mean' and 'var', it computes the probability that all the components are less than zero, using MC estimation.
+    Used to make predictions, see eq. (26) in arXiv paper. 
     """
     samples = np.random.multivariate_normal(mean=mean, cov=var, size=num_samples) # (num_samples, D)
     return np.mean(np.all(samples<0, axis=1))
@@ -22,7 +22,7 @@ def get_prob_all_less_zero(mean, var, num_samples=5000):
 def E_minf0(mu, var):
     """
     Computes the expectation of a 1D Gaussian truncated to (-\infty, 0). 
-    The expression is in overleaf, which is deducted from the general formula (see e.g. Wikipedia and references therein).
+    This is a known closed-form expression (see e.g. Wikipedia and references therein).
     When mu and var are numpy arrays, the result is obtained element-wise.
     """
     std = np.sqrt(var)
